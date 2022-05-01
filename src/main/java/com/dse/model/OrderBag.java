@@ -56,14 +56,12 @@ public class OrderBag {
         return sellOrders.peekItems();
     }
 
-    public List<Order> getSellAndBuyOrders(){
+    public List<Order> getSellAndBuyOrders() {
         return Stream.of(sellOrders.peekItems(), buyOrders.peekItems())
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
 
     }
-
-
 
     public int size(Side side){
         return switch (side){
@@ -76,6 +74,7 @@ public class OrderBag {
         return buyOrders.size() + sellOrders.size();
     }
 
+    // TODO this logic  to be refactored
     public void waitForOrderExecution(){
         orderBagLock.acquireUninterruptibly();
     }

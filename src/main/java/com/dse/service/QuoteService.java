@@ -6,22 +6,28 @@ import com.dse.model.Order;
 import com.dse.model.Publisher;
 import com.dse.model.Quote;
 import com.dse.model.Subscriber;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.logging.Logger;
 
+@Service
 public class QuoteService implements Publisher<Quote> {
+
+    @Autowired
+    private OrdersDao ordersDao;
 
     Logger logger = Logger.getLogger(QuoteService.class.getName());
 
-    public QuoteService(OrdersDao ordersDao) {
+/*    public QuoteService(OrdersDao ordersDao) {
         this.ordersDao = ordersDao;
-    }
+    }*/
 
     private final List<Subscriber<Quote>> subscribers = new ArrayList<>();
-    final OrdersDao ordersDao;
+
 
     public void updateQuote(String security){
         Optional<Order> topSellOrder = ordersDao.peekTopOrder(security , Side.SELL);

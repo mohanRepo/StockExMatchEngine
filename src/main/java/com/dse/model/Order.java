@@ -15,6 +15,11 @@ public class Order implements Comparable<Order> , Cloneable {
     private Side side;
     private int quantity; // we don't trade fraction
     private float price;
+
+    public int getTime() {
+        return time;
+    }
+
     private int time = Integer.parseInt(LocalTime.now().format(formatHHmm));
     private int version;
 

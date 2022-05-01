@@ -6,34 +6,48 @@ import com.dse.model.Order;
 import com.dse.model.OrderBag;
 import com.dse.model.Quote;
 import com.dse.model.Subscriber;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
+@Service
 public class OrderProcessingService implements Subscriber<Quote> {
 
     private Logger logger = Logger.getLogger(OrderProcessingService.class.getName());
     private ExecutorService orderExecutorService = Executors.newFixedThreadPool(10); // Thread pool for execution task TODO make it ThreadPoolExecutor
     private ExecutorService orderMatchService = Executors.newFixedThreadPool(10); // Thread pool for execution task
-    private QuoteService quoteService;
-    private OrdersDao ordersDao;
-    private TradeService tradeService = new TradeService();
 
-    public OrderProcessingService(QuoteService quoteService, OrdersDao ordersDao) {
-        this.quoteService = quoteService;
-        this.ordersDao = ordersDao;
+    @Autowired
+    private QuoteService quoteService;
+
+    @Autowired
+    private OrdersDao ordersDao;
+
+    @Autowired
+    private TradeService tradeService;
+
+    @PostConstruct
+    public void init() {
         this.quoteService.register(this);
     }
 
+/*    public OrderProcessingService(QuoteService quoteService, OrdersDao ordersDao) {
+        this.quoteService = quoteService;
+        this.ordersDao = ordersDao;
+    }*/
+
     public void placeOrder(String security, Order newOrder) {
 
-        logger.info(String.format("security: %s -> order received for process -> " ,security , newOrder));
+        logger.info(String.format("security: %s -> order received for process -> ", security, newOrder));
         OrderBag orderBag = ordersDao.getOrderBag(security);
         Side side = newOrder.getSide();
 
-        logger.info(String.format("security:%s total %s orders: %s",security, side, orderBag.size(side)));
+        logger.info(String.format("security:%s total %s orders: %s", security, side, orderBag.size(side)));
         synchronized (orderBag.getQueueLockObj(side)) { // buy lock or sell lock per security
             try {
                 orderBag.waitForOrderExecution();  // Wait for Orders to be executed
@@ -42,7 +56,7 @@ public class OrderProcessingService implements Subscriber<Quote> {
                 logger.info(String.format("new order: %s", newOrder));
                 orderBag.add(newOrder);
                 if (currentTop.isEmpty() || currentTop.get().getPrice() != newOrder.getPrice()) {
-                   // orderMatchService.submit(() -> checkForOrderMatch(security));
+                    // orderMatchService.submit(() -> checkForOrderMatch(security));
                     updateQuote(security, side, newOrder.getPrice());
                 }
                 logger.info(String.format("total %s orders: %s", side, orderBag.size(side)));
@@ -52,12 +66,12 @@ public class OrderProcessingService implements Subscriber<Quote> {
         }
     }
 
-    void checkForOrderMatch(String security){
+    void checkForOrderMatch(String security) {
 
         OrderBag orderBag = ordersDao.getOrderBag(security);
         Optional<Order> buyOrderOpt = orderBag.peek(Side.BUY);
         Optional<Order> sellOrderOpt = orderBag.peek(Side.SELL);
-        if (buyOrderOpt.isEmpty()|| sellOrderOpt.isEmpty()) {
+        if (buyOrderOpt.isEmpty() || sellOrderOpt.isEmpty()) {
             logger.info(String.format("security: %s , No match --> [either no sell or buy order].. abort match"));
             return;
         }
@@ -67,12 +81,11 @@ public class OrderProcessingService implements Subscriber<Quote> {
         float buyPrice = buyOrder.getPrice();
         float sellPrice = sellOrder.getPrice();
 
-        if ((sellPrice - buyPrice) <= 0.00001 ) {
-            logger.info(String.format("match found -> security: %s , buy order: %s , sell order : %s", security , buyOrder , sellOrder));
+        if ((sellPrice - buyPrice) <= 0.00001) {
+            logger.info(String.format("match found -> security: %s , buy order: %s , sell order : %s", security, buyOrder, sellOrder));
             executeOrder(security);
-        }
-        else{
-            logger.info(String.format("No match found -> security: %s , buy order: %s , sell order : %s", security , buyOrder , sellOrder));
+        } else {
+            logger.info(String.format("No match found -> security: %s , buy order: %s , sell order : %s", security, buyOrder, sellOrder));
         }
 
     }
@@ -85,11 +98,12 @@ public class OrderProcessingService implements Subscriber<Quote> {
 
             Optional<Order> buyOrderOpt = orderBag.peek(Side.BUY);
             Optional<Order> sellOrderOpt = orderBag.peek(Side.SELL);
-            if (buyOrderOpt.isEmpty()|| sellOrderOpt.isEmpty()) {
-                logger.info(String.format("**WARNING**  phantom scenario[either sell buy order null] ABORT EXECUTION")); return;
-            }
-            else if (buyOrderOpt.get().getPrice() < sellOrderOpt.get().getPrice()){
-                logger.info(String.format("**WARNING**  phantom scenario[ buyPrice < sellPrice] ABORT EXECUTION")); return;
+            if (buyOrderOpt.isEmpty() || sellOrderOpt.isEmpty()) {
+                logger.info(String.format("**WARNING**  phantom scenario[either sell buy order null] ABORT EXECUTION"));
+                return;
+            } else if (buyOrderOpt.get().getPrice() < sellOrderOpt.get().getPrice()) {
+                logger.info(String.format("**WARNING**  phantom scenario[ buyPrice < sellPrice] ABORT EXECUTION"));
+                return;
             }
             Order buyOrder = orderBag.poll(Side.BUY);
             Order sellOrder = orderBag.poll(Side.SELL);
@@ -117,12 +131,12 @@ public class OrderProcessingService implements Subscriber<Quote> {
             orderBag.releaseForOrderProcess();
         }
         quoteService.updateQuote(security); // Run in the same Order executor thread and execute the orders
-       // checkForOrderMatch(security);
+        // checkForOrderMatch(security);
     }
 
     void updateQuote(String security, Side side, float price) {
         orderExecutorService.submit(() -> quoteService.updateQuote(security));
-      // orderExecutorService.submit(() -> quoteService.updateQuote(security, side, price));
+        // orderExecutorService.submit(() -> quoteService.updateQuote(security, side, price));
     }
 
     @Override

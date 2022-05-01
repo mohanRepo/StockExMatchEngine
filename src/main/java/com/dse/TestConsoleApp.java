@@ -12,16 +12,16 @@ import java.io.IOException;
 import java.util.*;
 import java.util.logging.Logger;
 
-public class Main {
+public class TestConsoleApp {
 
     static final Object lock = new Object();
     // static Object anotherLock = new Object();
 
     SimpleMemoryStore store = new SimpleMemoryStore();
-    OrdersDao ordersDao = new OrdersDao(store);
-    QuoteService quoteService = new QuoteService(ordersDao);
-    OrderProcessingService orderProcessingService = new OrderProcessingService(quoteService, ordersDao);
-    OrderRequestService orderRequestService = new OrderRequestService(orderProcessingService , ordersDao);
+   OrdersDao ordersDao;// = new OrdersDao(store);
+    /*QuoteService quoteService = new QuoteService(ordersDao);
+    OrderProcessingService orderProcessingService = new OrderProcessingService(quoteService, ordersDao);*/
+    OrderRequestService orderRequestService;// = new OrderRequestService(orderProcessingService , ordersDao);
 
     public void placeOrder(String security,int start , int end) {
 
@@ -41,16 +41,16 @@ public class Main {
         }*/
     }
 
-        public static void main(String[] args) throws InterruptedException, IOException {
+        public static void NOTmain(String[] args) throws InterruptedException, IOException {
 
-        Logger logger = Logger.getLogger(Main.class.getName());
+        Logger logger = Logger.getLogger(TestConsoleApp.class.getName());
         logger.info("..test...");
 
         Order o = null;
 
             Optional<Order> o1 = Optional.ofNullable(o);
 
-            Main m = new Main();
+            TestConsoleApp m = new TestConsoleApp();
          m.orderRequestService.processOrder(new Order(1L, "IBM.N" , Side.SELL , 10 , 100.0F));
             m.orderRequestService.processOrder(new Order(2L, "IBM.N" , Side.BUY , 20 , 101.0F));
             m.orderRequestService.processOrder(new Order(3L, "IBM.N" , Side.BUY , 20 , 101.0F));
