@@ -7,9 +7,11 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class Order implements Comparable<Order> , Cloneable {
 
+    private static AtomicLong idTracker = new AtomicLong(0);
     private Long orderId;
     private String security;
     private Side side;
@@ -32,19 +34,29 @@ public class Order implements Comparable<Order> , Cloneable {
         formatHHmm = DateTimeFormatter.ofPattern("HHmmss");
     }
 
-    public Order(Long orderId, String security, Side side, int quantity, float price)  {
-        this.orderId = orderId;
+
+
+    public Order(String security, Side side, int quantity, float price , int time)  {
+        this.orderId = idTracker.incrementAndGet();
         this.security = security;
         this.side = side;
         this.quantity = quantity;
         this.price = price;
         this.version = 1;
-    }
-
-    public Order(Long orderId, String security, Side side, int quantity, float price , int time) {
-        this(orderId , security , side , quantity , price);
         this.time = time;
     }
+
+
+    public Order(String security, Side side, int quantity, float price)  {
+        this.orderId = idTracker.incrementAndGet();
+        this.security = security;
+        this.side = side;
+        this.quantity = quantity;
+        this.price = price;
+        this.version = 1;
+        this.time = Integer.parseInt(LocalTime.now().format(formatHHmm));
+    }
+
 
     public int getQuantity() {
         return quantity;

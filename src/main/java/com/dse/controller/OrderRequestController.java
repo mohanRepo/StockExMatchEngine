@@ -63,7 +63,7 @@ public class OrderRequestController {
 
         Side sideEnum = Side.valueOf(side.toUpperCase());
 
-        Order order = new Order(21L, security, sideEnum, quantity, price);
+        Order order = new Order(security, sideEnum, quantity, price);
 
         orderRequestService.processOrder(order);
 

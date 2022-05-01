@@ -51,11 +51,11 @@ public class TestConsoleApp {
             Optional<Order> o1 = Optional.ofNullable(o);
 
             TestConsoleApp m = new TestConsoleApp();
-         m.orderRequestService.processOrder(new Order(1L, "IBM.N" , Side.SELL , 10 , 100.0F));
-            m.orderRequestService.processOrder(new Order(2L, "IBM.N" , Side.BUY , 20 , 101.0F));
-            m.orderRequestService.processOrder(new Order(3L, "IBM.N" , Side.BUY , 20 , 101.0F));
-            m.orderRequestService.processOrder(new Order(4L, "IBM.N" , Side.SELL , 20 , 101.0F));
-            m.orderRequestService.processOrder(new Order(1L, "IBM.N" , Side.SELL , 10 , 100.0F));
+/*         m.orderRequestService.processOrder(new Order("IBM.N" , Side.SELL , 10 , 100.0F));
+            m.orderRequestService.processOrder(new Order( "IBM.N" , Side.BUY , 20 , 101.0F));
+            m.orderRequestService.processOrder(new Order( "IBM.N" , Side.BUY , 20 , 101.0F));
+            m.orderRequestService.processOrder(new Order( "IBM.N" , Side.SELL , 20 , 101.0F));
+            m.orderRequestService.processOrder(new Order(L, "IBM.N" , Side.SELL , 10 , 100.0F));
             m.orderRequestService.processOrder(new Order(2L, "IBM.N" , Side.BUY , 20 , 101.0F));
             m.orderRequestService.processOrder(new Order(3L, "IBM.N" , Side.BUY , 20 , 101.0F));
             m.orderRequestService.processOrder(new Order(4L, "IBM.N" , Side.SELL , 20 , 101.0F));
@@ -90,7 +90,7 @@ public class TestConsoleApp {
             m.orderRequestService.processOrder(new Order(1L, "IBM.XN" , Side.SELL , 10 , 100.0F));
             m.orderRequestService.processOrder(new Order(2L, "IBM.XN" , Side.BUY , 20 , 101.0F));
             m.orderRequestService.processOrder(new Order(3L, "IBM.XN" , Side.BUY , 20 , 101.0F));
-            m.orderRequestService.processOrder(new Order(4L, "IBM.XN" , Side.SELL , 20 , 101.0F));
+            m.orderRequestService.processOrder(new Order(4L, "IBM.XN" , Side.SELL , 20 , 101.0F));*/
 
             Thread.sleep(2000);
 
