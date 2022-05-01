@@ -6,47 +6,47 @@ import javax.print.attribute.standard.MediaSize;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Optional;
 
-public class Order implements Comparable<Order> {
+public class Order implements Comparable<Order> , Cloneable {
 
     private Long orderId;
     private String security;
     private Side side;
-    private long quantity; // we don't trade fraction
+    private int quantity; // we don't trade fraction
     private float price;
-    private int time;
-    static DateTimeFormatter formatHHmm;
+    private int time = Integer.parseInt(LocalTime.now().format(formatHHmm));
+    private int version;
+
     // TODO order type Limit or Market
+
+    static DateTimeFormatter formatHHmm;
 
     static
     {
         formatHHmm = DateTimeFormatter.ofPattern("HHmmss");
     }
 
-
-    public Order(Long orderId, String security, Side side, long quantity, float price) {
+    public Order(Long orderId, String security, Side side, int quantity, float price)  {
         this.orderId = orderId;
         this.security = security;
         this.side = side;
         this.quantity = quantity;
         this.price = price;
-        this.time = Integer.parseInt(LocalTime.now().format(formatHHmm));
+        this.version = 1;
     }
 
-    public long getQuantity() {
+    public Order(Long orderId, String security, Side side, int quantity, float price , int time) {
+        this(orderId , security , side , quantity , price);
+        this.time = time;
+    }
+
+    public int getQuantity() {
         return quantity;
-    }
-
-    public void setQuantity(long quantity) {
-        this.quantity = quantity;
     }
 
     public float getPrice() {
         return price;
-    }
-
-    public void setPrice(float price) {
-        this.price = price;
     }
 
     public Long getOrderId() {
@@ -61,19 +61,33 @@ public class Order implements Comparable<Order> {
         return side;
     }
 
-    private static int compare(Order o1 , Order o2){
+    public int getVersion() {
+        return version;
+    }
 
-        if(Math.abs(o1.price - o2.price) < Float.MIN_VALUE){ // when price equal compare time
-            return (o1.time - o2.time);  //  earlier time at head
+    public Optional<Order> getNewVersion(int quantity)
+    {
+        try {
+            Order newVersion = (Order)this.clone();
+            newVersion.version +=1;
+            newVersion.quantity = quantity;
+            return Optional.of(newVersion);
+        } catch (CloneNotSupportedException e) {
+            e.printStackTrace();
         }
-        else return (o1.price - o2.price) < 0 ? 1 : -1; // higher price at head
+        return Optional.empty();
+    }
 
+    @Override
+    protected Object clone() throws CloneNotSupportedException {
+        return super.clone();
     }
 
     @Override
     public String toString() {
         return "Order{" +
                 "orderId=" + orderId +
+                ", version=" + version +
                 ", security='" + security + '\'' +
                 ", side=" + side +
                 ", quantity=" + quantity +
@@ -84,6 +98,16 @@ public class Order implements Comparable<Order> {
 
     @Override
     public int compareTo(Order other) { // TODO test sort logic
-        return this.getSide() == Side.BUY ? compare(this , other) : compare(other , this);
+
+        float diff = this.price - other.price;
+        if(Math.abs(diff) < 0.00001){ // when price equal compare time
+            return (this.time - other.time) ;  //  earlier time at head
+        }
+      //  else return (this.price - other.price) < 0 ? 1 : -1; // higher price at head
+        else {
+            diff = diff / 0.00001F;
+            int i = (int) (this.getSide() == Side.SELL ? diff : -diff);
+            return i;
+        }
     }
 }

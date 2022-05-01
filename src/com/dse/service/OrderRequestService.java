@@ -13,7 +13,7 @@ public class OrderRequestService {
 
     BlockingQueue<Order> orders = new LinkedBlockingDeque<>();
 
-    ExecutorService executorService = Executors.newFixedThreadPool(8);
+    ExecutorService executorService = Executors.newFixedThreadPool(100);
 
     public OrderRequestService(OrderProcessingService orderProcessingService) {
         this.orderProcessingService = orderProcessingService;

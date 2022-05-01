@@ -13,7 +13,6 @@ import java.util.logging.Logger;
 
 public class QuoteService implements Publisher<Quote> {
 
-
     Logger logger = Logger.getLogger(QuoteService.class.getName());
 
     public QuoteService(OrdersDao ordersDao) {
@@ -21,28 +20,26 @@ public class QuoteService implements Publisher<Quote> {
     }
 
     private final List<Subscriber<Quote>> subscribers = new ArrayList<>();
-
     final OrdersDao ordersDao;
 
-    void updateQuote(String security){
+    public void updateQuote(String security){
         Order topSellOrder = ordersDao.getSellOrders(security).peek();
         Order topBuyOrder = ordersDao.getBuyOrders(security).peek();
         Quote quote = ordersDao.getQuote(security);
-        quote.setBid(topBuyOrder.getPrice());
-        quote.setAsk(topSellOrder.getPrice());
+        synchronized (quote) {
+            quote.setBid(topBuyOrder.getPrice()); // TODO make setBit and setAsk immutable
+            quote.setAsk(topSellOrder.getPrice());
 
-        float spread = quote.getSpread();
-        logger.info(String.format("update quote: %s , side:  %s , new spread: %s " , security , "BUY/SELL" , spread));
-        if (! (Math.abs(quote.getAsk()) < 0.00001 || Math.abs(quote.getBid()) < 0.00001)  &&  spread <= 0.00001) {
-            sendMessage(security , quote);
+            float spread = quote.getSpread();
+            logger.info(String.format("Order Execution --> update quote: %s , side:  %s , new spread: %s ", security, "BUY/SELL", spread));
+            if (!(Math.abs(quote.getAsk()) < 0.00001 || Math.abs(quote.getBid()) < 0.00001) && spread <= 0.00001) {
+                sendMessage(security, quote);
+            }
         }
     }
 
-
-    void updateQuote(String security, Side side, float price) {
-
+    public void updateQuote(String security, Side side, float price) {
         logger.info(String.format("update quote: %s , side:  %s , price: %s" , security , side , price));
-
         Quote quote = ordersDao.getQuote(security);
 
         synchronized (quote) {
@@ -52,7 +49,7 @@ public class QuoteService implements Publisher<Quote> {
             }
 
             float spread = quote.getSpread();
-            logger.info(String.format("update quote: %s , side:  %s , new spread: %s " , security , side , spread));
+            logger.info(String.format("Order Process --> update quote: %s , side:  %s , new spread: %s " , security , side , spread));
             if (! (Math.abs(quote.getAsk()) < 0.00001 || Math.abs(quote.getBid()) < 0.00001)  &&  spread <= 0.00001) {
                 sendMessage(security , quote);
             }

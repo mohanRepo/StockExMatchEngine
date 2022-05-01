@@ -25,7 +25,7 @@ public class OrdersDao {
         };
     }
 
-    public OrderBag getOrderBag(String security){
+    public OrderBag getOrderBag(String security) {
         return store.getSecurityOrders(security);
     }
 

@@ -12,10 +12,10 @@ public class SimpleMemoryStore {
 
 
 
-    Map<String, OrderBag> orders = new HashMap<>();
-    Map<String , Quote> quotes = new HashMap<>();
-    Map<Long, Trade> trades = new HashMap<>();
-    Map<Long, String>  orderAccountMapping = new HashMap<>();
+    Map<String, OrderBag> orders = new HashMap<>();  // Security -> Orders Map Store
+    Map<String , Quote> quotes = new HashMap<>();    // Security -> quote (bid , ask) Map Store
+    Map<Long, Trade> trades = new HashMap<>();     // Trade repo
+    Map<Long, String>  orderAccountMapping = new HashMap<>();    // orderID -> Account Mapping
 
     {
         orders.put("TEST" , new OrderBag());

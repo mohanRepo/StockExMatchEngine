@@ -4,13 +4,16 @@ import java.util.PriorityQueue;
 
 public class OrderQueue extends PriorityQueue<Order> {
 
+
+    private final Object queueLock = new Object();
+
     @Override
     public Order poll() {
-        Order poll = super.poll();
-
-
-
-
-        return poll;
+        return super.poll();
     }
+
+    public Object getQueueLock() {
+        return queueLock;
+    }
+
 }
