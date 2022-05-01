@@ -15,7 +15,8 @@ import java.util.logging.Logger;
 public class OrderProcessingService implements Subscriber<Quote> {
 
     private Logger logger = Logger.getLogger(OrderProcessingService.class.getName());
-    private ExecutorService orderExecutorService = Executors.newFixedThreadPool(10); // Thread pool for execution task
+    private ExecutorService orderExecutorService = Executors.newFixedThreadPool(10); // Thread pool for execution task TODO make it ThreadPoolExecutor
+    private ExecutorService orderMatchService = Executors.newFixedThreadPool(10); // Thread pool for execution task
     private QuoteService quoteService;
     private OrdersDao ordersDao;
     private TradeService tradeService = new TradeService();
@@ -41,6 +42,7 @@ public class OrderProcessingService implements Subscriber<Quote> {
                 logger.info(String.format("new order: %s", newOrder));
                 orderBag.add(newOrder);
                 if (currentTop.isEmpty() || currentTop.get().getPrice() != newOrder.getPrice()) {
+                   // orderMatchService.submit(() -> checkForOrderMatch(security));
                     updateQuote(security, side, newOrder.getPrice());
                 }
                 logger.info(String.format("total %s orders: %s", side, orderBag.size(side)));
@@ -48,6 +50,31 @@ public class OrderProcessingService implements Subscriber<Quote> {
                 orderBag.releaseForOrderExecution();
             }
         }
+    }
+
+    void checkForOrderMatch(String security){
+
+        OrderBag orderBag = ordersDao.getOrderBag(security);
+        Optional<Order> buyOrderOpt = orderBag.peek(Side.BUY);
+        Optional<Order> sellOrderOpt = orderBag.peek(Side.SELL);
+        if (buyOrderOpt.isEmpty()|| sellOrderOpt.isEmpty()) {
+            logger.info(String.format("security: %s , No match --> [either no sell or buy order].. abort match"));
+            return;
+        }
+
+        Order buyOrder = buyOrderOpt.get();
+        Order sellOrder = sellOrderOpt.get();
+        float buyPrice = buyOrder.getPrice();
+        float sellPrice = sellOrder.getPrice();
+
+        if ((sellPrice - buyPrice) <= 0.00001 ) {
+            logger.info(String.format("match found -> security: %s , buy order: %s , sell order : %s", security , buyOrder , sellOrder));
+            executeOrder(security);
+        }
+        else{
+            logger.info(String.format("No match found -> security: %s , buy order: %s , sell order : %s", security , buyOrder , sellOrder));
+        }
+
     }
 
 
@@ -90,6 +117,7 @@ public class OrderProcessingService implements Subscriber<Quote> {
             orderBag.releaseForOrderProcess();
         }
         quoteService.updateQuote(security); // Run in the same Order executor thread and execute the orders
+       // checkForOrderMatch(security);
     }
 
     void updateQuote(String security, Side side, float price) {

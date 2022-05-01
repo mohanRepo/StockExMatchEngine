@@ -9,6 +9,7 @@ import com.dse.model.Subscriber;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.logging.Logger;
 
 public class QuoteService implements Publisher<Quote> {
@@ -23,21 +24,23 @@ public class QuoteService implements Publisher<Quote> {
     final OrdersDao ordersDao;
 
     public void updateQuote(String security){
-        Order topSellOrder = ordersDao.getSellOrders(security).peek();
-        Order topBuyOrder = ordersDao.getBuyOrders(security).peek();
+        Optional<Order> topSellOrder = ordersDao.peekTopOrder(security , Side.SELL);
+        Optional<Order> topBuyOrder = ordersDao.peekTopOrder(security , Side.BUY);
         Quote quote = ordersDao.getQuote(security);
         synchronized (quote) {
-            quote.setBid(topBuyOrder.getPrice()); // TODO make setBit and setAsk immutable
-            quote.setAsk(topSellOrder.getPrice());
+            // TODO make setBit and setAsk immutable
+            quote.setAsk(topSellOrder.isEmpty() ? 0 : topSellOrder.get().getPrice());
+            quote.setBid(topBuyOrder.isEmpty() ? 0 : topBuyOrder.get().getPrice());
 
             float spread = quote.getSpread();
-            logger.info(String.format("Order Execution --> update quote: %s , side:  %s , new spread: %s ", security, "BUY/SELL", spread));
-            if (!(Math.abs(quote.getAsk()) < 0.00001 || Math.abs(quote.getBid()) < 0.00001) && spread <= 0.00001) {
+            logger.info(String.format("Notify price match --> update quote: %s , side:  %s , new spread: %s ", security, "BUY/SELL", spread));
+            if ( topSellOrder.isPresent() && topBuyOrder.isPresent() &&  spread <= 0.00001) {
                 sendMessage(security, quote);
             }
         }
     }
 
+    @Deprecated
     public void updateQuote(String security, Side side, float price) {
         logger.info(String.format("update quote: %s , side:  %s , price: %s" , security , side , price));
         Quote quote = ordersDao.getQuote(security);

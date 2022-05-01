@@ -2,15 +2,18 @@ package com.dse.model;
 
 import com.dse.enums.Side;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.PriorityQueue;
 import java.util.concurrent.Semaphore;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class OrderBag {
 
-    private volatile OrderQueue buyOrders = new OrderQueue();
-    private volatile OrderQueue sellOrders = new OrderQueue();
+    private volatile ItemQueue<Order> buyOrders = new ItemQueue<>();
+    private volatile ItemQueue<Order> sellOrders = new ItemQueue<>();
 
     // Lock to allow either (add buy and sell in parallel) or Order execution
     // permits are 2 bcoz we can allow add buy and sell in parallel
@@ -45,21 +48,22 @@ public class OrderBag {
         };
     }
 
-    public OrderQueue getBuyOrders() {
-        return buyOrders;
+    public List<Order> getBuyOrders() {
+        return buyOrders.peekItems();
     }
 
-    public List<Order> getBuyOrdersEx() {
-        return buyOrders.stream().sorted().toList();
+    public List<Order> getSellOrders() {
+        return sellOrders.peekItems();
     }
 
-    public List<Order> getSellOrdersEx() {
-        return sellOrders.stream().sorted().toList();
+    public List<Order> getSellAndBuyOrders(){
+        return Stream.of(sellOrders.peekItems(), buyOrders.peekItems())
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
+
     }
 
-    public PriorityQueue<Order> getSellOrders() {
-        return sellOrders;
-    }
+
 
     public int size(Side side){
         return switch (side){
