@@ -58,8 +58,8 @@ public class OrderProcessingEngine implements Subscriber<Quote> {
                 logger.info("top order: {}", currentTop);
                 logger.info("new order: {}", newOrder);
                 orderBook.add(newOrder);
-                if (currentTop.isEmpty() || currentTop.get().getPrice() != newOrder.getPrice()) {
-                    // orderMatchService.submit(() -> checkForOrderMatch(security));
+                Optional<Order> newTop = orderBook.peek(side);
+                if (currentTop.isEmpty() || currentTop.get().getOrderId() != newTop.get().getOrderId()) {
                     updateQuote(security, side, newOrder.getPrice());
                 }
                 logger.info("total {} orders: {}", side, orderBook.size(side));

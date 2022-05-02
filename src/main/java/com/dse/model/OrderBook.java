@@ -11,8 +11,8 @@ import java.util.stream.Stream;
 
 public class OrderBook {
 
-    private volatile ItemQueue<Order> buyOrders = new ItemQueue<>();
-    private volatile ItemQueue<Order> sellOrders = new ItemQueue<>();
+    private  ItemQueue<Order> buyOrders = new ItemQueue<>();
+    private  ItemQueue<Order> sellOrders = new ItemQueue<>();
 
     // Lock to allow either (add buy and sell in parallel) or Order execution
     // permits are 2 bcoz we can allow add buy and sell in parallel
