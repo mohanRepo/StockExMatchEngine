@@ -2,6 +2,7 @@ package com.dse.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Scope;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.concurrent.Executor;
@@ -27,6 +28,7 @@ public class ExecutorConfig {
     }
 
     @Bean("orderMatchExecutor")
+    @Scope("prototype")
     public Executor orderMatchExecutor(){
 
         ThreadPoolTaskExecutor taskExecutor = new ThreadPoolTaskExecutor();

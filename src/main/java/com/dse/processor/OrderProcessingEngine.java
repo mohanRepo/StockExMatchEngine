@@ -11,23 +11,30 @@ import com.dse.service.QuoteService;
 import com.dse.service.TradeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Executor;
 
 @Service
-public class OrderProcessingEngine implements Subscriber<Quote> {
+public class OrderProcessingEngine implements Subscriber<Quote>, ApplicationContextAware {
 
-    private static final Logger logger = LoggerFactory.getLogger(OrderRequestService.class);
+    private static final Logger logger = LoggerFactory.getLogger(OrderProcessingEngine.class);
 
+/*
     @Autowired
     @Qualifier("orderMatchExecutor")
     Executor orderMatchExecutor;
+*/
 
     @Autowired
     private QuoteService quoteService;
@@ -38,9 +45,19 @@ public class OrderProcessingEngine implements Subscriber<Quote> {
     @Autowired
     private TradeService tradeService;
 
+    ApplicationContext applicationContext;
+
+    private Map<String, Executor> orderMatchExecutors = new HashMap<>();
+
     @PostConstruct
     public void init() {
         this.quoteService.register(this);
+    }
+
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.applicationContext = applicationContext;
     }
 
 
@@ -54,13 +71,6 @@ public class OrderProcessingEngine implements Subscriber<Quote> {
         synchronized (orderBook.getQueueLockObj(side)) { // buy lock or sell lock per security
             try {
                 orderBook.waitForOrderExecution();  // Wait for Orders to be executed
-                try {
-                    logger.info("Waiting in place order");
-                    //Thread.sleep(1000);
-                    logger.info("Done Waiting in place order");
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
                 logger.info("new order: {}", newOrder);
                 orderBook.add(newOrder);
                 Optional<Order> newTop = orderBook.peek(side);
@@ -75,8 +85,29 @@ public class OrderProcessingEngine implements Subscriber<Quote> {
         }
     }
 
-    void executeOrder(String security) {
+    void executeOrderQueue(String security) {
         OrderBook orderBook = ordersDao.getOrderBag(security);
+        boolean executed = false;
+        logger.info("try acquire execute order lock for secutiry: {}", security);
+        if (orderBook.getExecutionLock().tryLock()) {
+            try {
+                logger.info("acquired execute order for secutiry: {}", security);
+                executed = executeOrder(security, orderBook);
+            } finally {
+                orderBook.getExecutionLock().unlock();
+            }
+
+            if(executed)
+                    quoteService.updateQuote(security); // Run in the same Order executor thread and execute the orders
+        } else {
+            logger.info("Order execution is in progress for security: {}", security);
+        }
+    }
+
+    private boolean executeOrder(String security, OrderBook orderBook) {
+
+        boolean executed = false;
+        // OrderBook orderBook = ordersDao.getOrderBag(security);
         Order buyOrder = null;
         Order sellOrder = null;
 
@@ -86,21 +117,17 @@ public class OrderProcessingEngine implements Subscriber<Quote> {
             Optional<Order> buyOrderOpt = orderBook.peek(Side.BUY);
             Optional<Order> sellOrderOpt = orderBook.peek(Side.SELL);
             if (buyOrderOpt.isEmpty() || sellOrderOpt.isEmpty()) {
-                logger.warn(String.format("**WARNING**  phantom scenario[either sell buy order null] ABORT EXECUTION"));
-                return;
+                logger.warn("**WARNING**  phantom scenario[either sell buy order null] ABORT EXECUTION , security:{}" , security);
+                return false;
             } else if (buyOrderOpt.get().getPrice() < sellOrderOpt.get().getPrice()) {
-                logger.warn(String.format("**WARNING**  phantom scenario[ buyPrice < sellPrice] ABORT EXECUTION"));
-                return;
+                logger.warn("**WARNING**  phantom scenario[ buyPrice < sellPrice] ABORT EXECUTION , security:{}" , security);
+                return false;
             }
 
             buyOrder = orderBook.poll(Side.BUY);
             sellOrder = orderBook.poll(Side.SELL);
-        } catch (Exception ex) {
-            logger.info("Error in execute..." + ex);
-        } finally {
-            orderBook.releaseForOrderProcess();
-        }
 
+        executed = true;
         int buyQuantity = buyOrder.getQuantity();
         int sellQuantity = sellOrder.getQuantity();
         int tradeQuantity = Math.min(buyQuantity, sellQuantity);
@@ -123,8 +150,16 @@ public class OrderProcessingEngine implements Subscriber<Quote> {
 
         logger.info("security: {} -  total [buy,sell] -> [{},{}] orders",
                 security, orderBook.size(Side.BUY), orderBook.size(Side.SELL));
+        } catch (Exception ex) {
+            logger.info("Error in execute..." + ex);
+        } finally {
+            orderBook.releaseForOrderProcess();
+        }
 
-        quoteService.updateQuote(security); // Run in the same Order executor thread and execute the orders
+
+        return executed;
+
+
 
     }
 
@@ -137,17 +172,34 @@ public class OrderProcessingEngine implements Subscriber<Quote> {
     }*/
 
     void updateQuote(String security, Side side, float price) {
-        orderMatchExecutor.execute(() -> quoteService.updateQuote(security));
+        Executor executor = orderMatchExecutors.get(security);
+        if (executor == null) {
+
+            synchronized (orderMatchExecutors) {
+
+                if (executor == null) {
+                    executor = (Executor) applicationContext.getBean("orderMatchExecutor");
+                    orderMatchExecutors.put(security, executor);
+                }
+
+            }
+        }
+
+        executor.execute(() -> quoteService.updateQuote(security));
     }
 
     @Override
     public void onMessage(String topic, Quote message) {
-        executeOrder(topic);
+        executeOrderQueue(topic);
     }
+
+/*    @Deprecated
+    void updateQuoteEx(String security, Side side, float price) {
+        //orderMatchExecutor.execute(() -> quoteService.updateQuote(security));
+    }*/
 
     @Deprecated
     void checkForOrderMatch(String security) {
-
         OrderBook orderBook = ordersDao.getOrderBag(security);
         Optional<Order> buyOrderOpt = orderBook.peek(Side.BUY);
         Optional<Order> sellOrderOpt = orderBook.peek(Side.SELL);
@@ -163,11 +215,10 @@ public class OrderProcessingEngine implements Subscriber<Quote> {
 
         if ((sellPrice - buyPrice) <= 0.00001) {
             logger.info("match found -> security: {} , buy order: {}, sell order : {}", security, buyOrder, sellOrder);
-            executeOrder(security);
+            executeOrderQueue(security);
         } else {
             logger.info("No match found -> security: {} , buy order: {} , sell order : {}", security, buyOrder, sellOrder);
         }
-
     }
 
 

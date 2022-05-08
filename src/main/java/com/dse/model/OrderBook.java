@@ -16,12 +16,20 @@ public class OrderBook {
     private  ItemQueue<Order> buyOrders = new ItemQueue<>();
     private  ItemQueue<Order> sellOrders = new ItemQueue<>();
 
+
+
     private Lock executionLock = new ReentrantLock(true);
+
+
 
     // Lock to allow either (add buy and sell in parallel) or Order execution
     // permits are 2 bcoz we can allow add buy and sell in parallel
     // TODO find proper place to fit  for this
     private Semaphore orderBagLock = new Semaphore(2 );
+
+    public Lock getExecutionLock() {
+        return executionLock;
+    }
 
     public void add(Order order) {
         switch (order.getSide()){
