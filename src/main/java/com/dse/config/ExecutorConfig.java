@@ -12,11 +12,11 @@ import java.util.concurrent.ThreadPoolExecutor;
 public class ExecutorConfig {
 
     @Bean("orderProcessingExecutor")
-    public Executor orderProcessingExecutor(){
+    public ThreadPoolTaskExecutor orderProcessingExecutor(){
 
         ThreadPoolTaskExecutor taskExecutor = new ThreadPoolTaskExecutor();
-        taskExecutor.setCorePoolSize(15);
-        taskExecutor.setMaxPoolSize(20);
+        taskExecutor.setCorePoolSize(2);
+        taskExecutor.setMaxPoolSize(2);
         taskExecutor.setQueueCapacity(100);
         taskExecutor.setThreadGroupName("orderProcessingExecutor");
         taskExecutor.setThreadNamePrefix("orderProcessingExecutor");

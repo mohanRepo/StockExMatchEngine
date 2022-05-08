@@ -1,5 +1,9 @@
 package com.dse.model;
 
+import com.dse.service.OrderRequestService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -7,7 +11,13 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class ItemBufferPool<T>  implements Publisher<T> {
+public class ItemBufferPool<T extends Order>  implements Publisher<T> {
+
+    public ItemBufferPool(int maxProcessLimt){
+        this.processingLimit = maxProcessLimt;
+    }
+
+    private static final Logger logger = LoggerFactory.getLogger(ItemBufferPool.class);
 
     private AtomicInteger processingCount = new AtomicInteger(0);
 
@@ -17,7 +27,7 @@ public class ItemBufferPool<T>  implements Publisher<T> {
 
     private final List<Subscriber<T>> subscribers = new ArrayList<>();
 
-    private final int processingLimit = 2;
+    private int processingLimit = 2;
 
     public void addItem(T item){
 
@@ -31,9 +41,11 @@ public class ItemBufferPool<T>  implements Publisher<T> {
     private Object lockObj = new Object();
 
     private void notifyCollectionChange(){
+        synchronized (bufferQueue) {
         int delta = processingLimit - processingCount.get();
         if(delta > 0) {
-            synchronized (bufferQueue) {
+            logger.info("delta:{} , processingCount:{}" , delta , processingCount);
+
                List<T> temp = new ArrayList<>();
                bufferQueue.drainTo(temp , delta);
                temp.forEach( t -> {

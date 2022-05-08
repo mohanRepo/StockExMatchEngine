@@ -33,7 +33,7 @@ public class TestRunnerRestClient {
         orderRequestService.processOrder(new Order( "ABC.XM" , Side.BUY , 200 , 20.20F , 908));
         orderRequestService.processOrder(new Order( "ABC.XM" , Side.BUY , 200 , 20.15F , 909));
 
-        orderRequestService.processOrder(new Order( "ABC.XM" , Side.BUY , 250 , 20.35F , 910));
+
 
         orderRequestService.processOrder(new Order( "XYZ.XM" , Side.SELL , 100 , 20.30F , 901));
         orderRequestService.processOrder(new Order("XYZ.XM" , Side.SELL , 100 , 20.25F , 903));
@@ -42,11 +42,11 @@ public class TestRunnerRestClient {
         orderRequestService.processOrder(new Order( "XYZ.XM" , Side.BUY , 100 , 20.15F , 906));
         orderRequestService.processOrder(new Order( "XYZ.XM" , Side.BUY , 200 , 20.20F , 908));
         orderRequestService.processOrder(new Order( "XYZ.XM" , Side.BUY , 200 , 20.15F , 909));
-
+        orderRequestService.processOrder(new Order( "ABC.XM" , Side.BUY , 250 , 20.35F , 910));
         orderRequestService.processOrder(new Order( "XYZ.XM" , Side.BUY , 250 , 20.35F , 910));
 
 
-       orderRequestService.processOrder(new Order("IBM.N" , Side.SELL , 10 , 100.0F));
+       /*orderRequestService.processOrder(new Order("IBM.N" , Side.SELL , 10 , 100.0F));
        orderRequestService.processOrder(new Order( "IBM.N" , Side.BUY , 20 , 101.0F));
        orderRequestService.processOrder(new Order( "IBM.N" , Side.BUY , 20 , 101.0F));
        orderRequestService.processOrder(new Order( "IBM.N" , Side.SELL , 20 , 101.0F));
@@ -85,7 +85,7 @@ public class TestRunnerRestClient {
        orderRequestService.processOrder(new Order( "IBM.XN" , Side.SELL , 10 , 100.0F));
        orderRequestService.processOrder(new Order( "IBM.XN" , Side.BUY , 20 , 101.0F));
        orderRequestService.processOrder(new Order( "IBM.XN" , Side.BUY , 20 , 101.0F));
-       orderRequestService.processOrder(new Order( "IBM.XN" , Side.SELL , 20 , 101.0F));
+       orderRequestService.processOrder(new Order( "IBM.XN" , Side.SELL , 20 , 101.0F));*/
     }
 
 }
