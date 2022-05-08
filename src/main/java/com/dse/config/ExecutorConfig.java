@@ -18,6 +18,7 @@ public class ExecutorConfig {
         taskExecutor.setMaxPoolSize(20);
         taskExecutor.setQueueCapacity(100);
         taskExecutor.setThreadGroupName("orderProcessingExecutor");
+        taskExecutor.setThreadNamePrefix("orderProcessingExecutor");
         taskExecutor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         taskExecutor.initialize();
 
@@ -29,10 +30,11 @@ public class ExecutorConfig {
     public Executor orderMatchExecutor(){
 
         ThreadPoolTaskExecutor taskExecutor = new ThreadPoolTaskExecutor();
-        taskExecutor.setCorePoolSize(5);
-        taskExecutor.setMaxPoolSize(10);
-        taskExecutor.setQueueCapacity(100);
+        taskExecutor.setCorePoolSize(1);
+        taskExecutor.setMaxPoolSize(1);
+        taskExecutor.setQueueCapacity(1000);
         taskExecutor.setThreadGroupName("orderMatchExecutor");
+        taskExecutor.setThreadNamePrefix("orderMatchExecutor");
         taskExecutor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         taskExecutor.initialize();
 

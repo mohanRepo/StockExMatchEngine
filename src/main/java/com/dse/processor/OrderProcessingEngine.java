@@ -54,12 +54,18 @@ public class OrderProcessingEngine implements Subscriber<Quote> {
         synchronized (orderBook.getQueueLockObj(side)) { // buy lock or sell lock per security
             try {
                 orderBook.waitForOrderExecution();  // Wait for Orders to be executed
-                Optional<Order> currentTop = orderBook.peek(side);
-                logger.info("top order: {}", currentTop);
+                try {
+                    logger.info("Waiting in place order");
+                    //Thread.sleep(1000);
+                    logger.info("Done Waiting in place order");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
                 logger.info("new order: {}", newOrder);
                 orderBook.add(newOrder);
                 Optional<Order> newTop = orderBook.peek(side);
-                if (currentTop.isEmpty() || currentTop.get().getOrderId() != newTop.get().getOrderId()) {
+                if (newOrder.getOrderId() == newTop.get().getOrderId())  //
+                {
                     updateQuote(security, side, newOrder.getPrice());
                 }
                 logger.info("total {} orders: {}", side, orderBook.size(side));
@@ -71,6 +77,9 @@ public class OrderProcessingEngine implements Subscriber<Quote> {
 
     void executeOrder(String security) {
         OrderBook orderBook = ordersDao.getOrderBag(security);
+        Order buyOrder = null;
+        Order sellOrder = null;
+
         try {
             orderBook.waitForOrderProcess();  // When order to be traded don't allow other thread to add new orders into order book
 
@@ -84,37 +93,39 @@ public class OrderProcessingEngine implements Subscriber<Quote> {
                 return;
             }
 
-
-            Order buyOrder = orderBook.poll(Side.BUY);
-            Order sellOrder = orderBook.poll(Side.SELL);
-            int buyQuantity = buyOrder.getQuantity();
-            int sellQuantity = sellOrder.getQuantity();
-            int tradeQuantity = Math.min(buyQuantity, sellQuantity);
-            float tradePrice = Math.max(buyOrder.getPrice(), sellOrder.getPrice());
-
-            logger.info("executed order for sec:{} , order ids [{},{}] , tradeQuantity:{} , tradePrice: {}"
-                    , security , buyOrder.getOrderId() , sellOrder.getOrderId() , tradeQuantity , tradePrice);
-
-            // create sell trade
-            tradeService.createTrade(security, sellOrder, tradeQuantity , tradePrice);
-            // create buy trade
-            tradeService.createTrade(security, buyOrder, tradeQuantity , tradePrice);
-
-            // create buy or sell order
-            if (buyQuantity > sellQuantity) {
-                orderBook.add(buyOrder.getNewVersion(buyQuantity - sellQuantity).get());  // create buy order
-            } else if (buyQuantity < sellQuantity) {
-                orderBook.add(sellOrder.getNewVersion(sellQuantity - buyQuantity).get());  // create sell order
-            }
-
-            logger.info("security: {} -  total [buy,sell] -> [{},{}] orders",
-                    security, orderBook.size(Side.BUY), orderBook.size(Side.SELL));
+            buyOrder = orderBook.poll(Side.BUY);
+            sellOrder = orderBook.poll(Side.SELL);
         } catch (Exception ex) {
             logger.info("Error in execute..." + ex);
         } finally {
             orderBook.releaseForOrderProcess();
         }
+
+        int buyQuantity = buyOrder.getQuantity();
+        int sellQuantity = sellOrder.getQuantity();
+        int tradeQuantity = Math.min(buyQuantity, sellQuantity);
+        float tradePrice = Math.max(buyOrder.getPrice(), sellOrder.getPrice());
+
+        logger.info("executed order for sec:{} , order ids [{},{}] , tradeQuantity:{} , tradePrice: {}"
+                , security, buyOrder.getOrderId(), sellOrder.getOrderId(), tradeQuantity, tradePrice);
+
+        // create sell trade
+        tradeService.createTrade(security, sellOrder, tradeQuantity, tradePrice);
+        // create buy trade
+        tradeService.createTrade(security, buyOrder, tradeQuantity, tradePrice);
+
+        // create buy or sell order
+        if (buyQuantity > sellQuantity) {
+            orderBook.add(buyOrder.getNewVersion(buyQuantity - sellQuantity).get());  // create buy order
+        } else if (buyQuantity < sellQuantity) {
+            orderBook.add(sellOrder.getNewVersion(sellQuantity - buyQuantity).get());  // create sell order
+        }
+
+        logger.info("security: {} -  total [buy,sell] -> [{},{}] orders",
+                security, orderBook.size(Side.BUY), orderBook.size(Side.SELL));
+
         quoteService.updateQuote(security); // Run in the same Order executor thread and execute the orders
+
     }
 
 
@@ -158,7 +169,6 @@ public class OrderProcessingEngine implements Subscriber<Quote> {
         }
 
     }
-
 
 
 }

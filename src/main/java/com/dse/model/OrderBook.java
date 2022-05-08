@@ -6,6 +6,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -13,6 +15,8 @@ public class OrderBook {
 
     private  ItemQueue<Order> buyOrders = new ItemQueue<>();
     private  ItemQueue<Order> sellOrders = new ItemQueue<>();
+
+    private Lock executionLock = new ReentrantLock(true);
 
     // Lock to allow either (add buy and sell in parallel) or Order execution
     // permits are 2 bcoz we can allow add buy and sell in parallel
